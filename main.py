@@ -72,3 +72,40 @@ def get_intraday_price(
 
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+@app.get("/stockdata/{ticker}")
+def get_stock_data(
+    ticker: str,
+    interval: str = "Daily",
+    n_bars: int = 50
+):
+    try:
+        interval_dic = {
+            'Daily': Interval.in_daily,
+            'Weekly': Interval.in_weekly,
+            'Monthly': Interval.in_monthly
+        }
+
+        tv = TvDatafeedLive()
+        df = tv.get_hist(
+            symbol=ticker,
+            exchange="EGX",
+            interval=interval_dic[interval],
+            n_bars=n_bars,
+            timeout=-1
+        )
+
+        df = df.reset_index()
+        df["datetime"] = df["datetime"].astype(str)
+        return {
+            "success": True,
+            "ticker": ticker,
+            "interval": interval,
+            "n_bars": n_bars,
+            "data": df.to_dict(orient="records")
+        }
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
