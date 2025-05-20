@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from egxpy import stock_data
+from egxpy.stock_data import StockData  # or whatever you need
 
 app = FastAPI()
 
