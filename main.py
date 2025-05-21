@@ -1,111 +1,108 @@
-from fastapi import FastAPI
-from datetime import datetime, date, timedelta
-import pandas as pd
-from tvDatafeed import TvDatafeedLive, Interval
-from retry import retry
+from fastapi import FastAPI, Body
+from pydantic import BaseModel
+from datetime import datetime, timedelta
+from typing import List
+import pytz
 
 from egxpy.download import get_EGX_intraday_data
 
 app = FastAPI()
 
-@app.get("/price/{ticker}")
-def get_price(ticker: str):
+
+@app.post("/stocks/last7days")
+def get_multiple_stocks_last7days(tickers: List[str] = Body(..., embed=True)):
     try:
-        # Define the interval and date range
         interval = '1 Minute'
-        end = datetime.now()
-        start = end - timedelta(days=1)
+        now = datetime.now(pytz.timezone("Africa/Cairo"))
+        start = now - timedelta(days=7)
+        end = now
 
-        # Fetch the intraday data
-        df = get_EGX_intraday_data([ticker], interval, start, end)
+        data = {}
+        df = get_EGX_intraday_data(tickers, interval, start, end)
+        for ticker in tickers:
+            if ticker in df.columns.levels[0]:
+                stock_df = df[ticker].dropna().reset_index()
+                stock_df["datetime"] = stock_df["datetime"].astype(str)
+                data[ticker] = stock_df.to_dict(orient="records")
+            else:
+                data[ticker] = "No data found"
 
-        # Extract the latest price
-        latest_price = df[ticker].dropna().iloc[-1]
-
-        return {"success": True, "ticker": ticker, "price": latest_price}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-@retry((Exception), tries=20, delay=0.5, backoff=0)
-def _get_intraday_close_price_data(symbol, exchange, interval, n_bars):
-    interval_dic = {
-        '1 Minute': Interval.in_1_minute,
-        '5 Minute': Interval.in_5_minute,
-        '30 Minute': Interval.in_30_minute
-    }
-
-    tv = TvDatafeedLive()
-    response = tv.get_hist(
-        symbol=symbol,
-        exchange=exchange,
-        interval=interval_dic[interval],
-        n_bars=n_bars,
-        timeout=-1
-    )['close']
-    return response
-
-
-@app.get("/intraday/{ticker}")
-def get_intraday_price(
-    ticker: str,
-    interval: str = "5 Minute",
-    n_bars: int = 50
-):
-    try:
-        close_data = _get_intraday_close_price_data(
-            symbol=ticker,
-            exchange="EGX",
-            interval=interval,
-            n_bars=n_bars
-        )
-
-        df = close_data.reset_index()
-        df.columns = ["datetime", "close"]
-        df["datetime"] = df["datetime"].astype(str)
         return {
             "success": True,
-            "ticker": ticker,
             "interval": interval,
-            "n_bars": n_bars,
-            "data": df.to_dict(orient="records")
+            "start": str(start),
+            "end": str(end),
+            "data": data
         }
 
     except Exception as e:
         return {"success": False, "error": str(e)}
 
 
-@app.get("/stockdata/{ticker}")
-def get_stock_data(
-    ticker: str,
-    interval: str = "Daily",
-    n_bars: int = 50
-):
+class StockQuery(BaseModel):
+    tickers: List[str]
+    start: datetime
+    end: datetime
+
+
+@app.post("/stocks/customrange")
+def get_multiple_stocks_custom_range(query: StockQuery):
     try:
-        interval_dic = {
-            'Daily': Interval.in_daily,
-            'Weekly': Interval.in_weekly,
-            'Monthly': Interval.in_monthly
-        }
+        interval = '1 Minute'
 
-        tv = TvDatafeedLive()
-        df = tv.get_hist(
-            symbol=ticker,
-            exchange="EGX",
-            interval=interval_dic[interval],
-            n_bars=n_bars,
-            timeout=-1
-        )
+        # Ensure timezone-aware datetimes (Cairo)
+        tz = pytz.timezone("Africa/Cairo")
+        start = query.start.astimezone(tz)
+        end = query.end.astimezone(tz)
 
-        df = df.reset_index()
-        df["datetime"] = df["datetime"].astype(str)
+        data = {}
+        df = get_EGX_intraday_data(query.tickers, interval, start, end)
+        for ticker in query.tickers:
+            if ticker in df.columns.levels[0]:
+                stock_df = df[ticker].dropna().reset_index()
+                stock_df["datetime"] = stock_df["datetime"].astype(str)
+                data[ticker] = stock_df.to_dict(orient="records")
+            else:
+                data[ticker] = "No data found"
+
         return {
             "success": True,
-            "ticker": ticker,
             "interval": interval,
-            "n_bars": n_bars,
-            "data": df.to_dict(orient="records")
+            "start": str(start),
+            "end": str(end),
+            "data": data
         }
 
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+
+@app.post("/stocks/today")
+def get_today_intraday_data(tickers: List[str] = Body(..., embed=True)):
+    try:
+        interval = '1 Minute'
+        now = datetime.now(pytz.timezone("Africa/Cairo"))
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end = now
+
+        df = get_EGX_intraday_data(tickers, interval, start, end)
+
+        result = {}
+        for ticker in tickers:
+            if ticker in df.columns.levels[0]:
+                stock_df = df[ticker].dropna().reset_index()
+                stock_df["datetime"] = stock_df["datetime"].astype(str)
+                result[ticker] = stock_df.to_dict(orient="records")
+            else:
+                result[ticker] = "No data found"
+
+        return {
+            "success": True,
+            "interval": interval,
+            "start": str(start),
+            "end": str(end),
+            "data": result
+        }
+
+    except Exception as e:
+        return {"success": False, "error": str(e)}
