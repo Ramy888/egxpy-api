@@ -77,13 +77,18 @@ def get_multiple_stocks_custom_range(query: StockQuery):
         return {"success": False, "error": str(e)}
 
 
+
 @app.post("/stocks/today")
 def get_today_intraday_data(tickers: List[str] = Body(..., embed=True)):
     try:
         interval = '1 Minute'
-        now = datetime.now(pytz.timezone("Africa/Cairo"))
-        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        end = now
+        cairo_tz = pytz.timezone("Africa/Cairo")
+        now = datetime.now(cairo_tz)
+
+        # Set start time to today at 9:00 AM Cairo time
+        start = now.replace(hour=9, minute=0, second=0, microsecond=0)
+        # Set end time to today at 2:00 PM Cairo time
+        end = now.replace(hour=14, minute=0, second=0, microsecond=0)
 
         df = get_EGX_intraday_data(tickers, interval, start, end)
 
@@ -106,3 +111,4 @@ def get_today_intraday_data(tickers: List[str] = Body(..., embed=True)):
 
     except Exception as e:
         return {"success": False, "error": str(e)}
+
