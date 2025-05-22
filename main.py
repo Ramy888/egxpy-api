@@ -26,19 +26,23 @@ def get_multiple_stocks_last7days(tickers: List[str] = Body(..., embed=True)):
         now = datetime.now(pytz.timezone("Africa/Cairo"))
         start = (now - timedelta(days=7)).replace(tzinfo=None)
         end = now.replace(tzinfo=None)
-        
-        # start = now - timedelta(days=7)
-        # end = now
 
         data = {}
         df = get_EGX_intraday_data(tickers, interval, start, end)
+
         for ticker in tickers:
-            if ticker in df.columns.levels[0]:
-                stock_df = df[ticker].dropna().reset_index()
+            if isinstance(df.columns, pd.MultiIndex):
+                if ticker in df.columns.levels[0]:
+                    stock_df = df[ticker].dropna().reset_index()
+                    stock_df["datetime"] = stock_df["datetime"].astype(str)
+                    data[ticker] = stock_df.to_dict(orient="records")
+                else:
+                    data[ticker] = "No data found"
+            else:
+                # Flat column case (single ticker)
+                stock_df = df.dropna().reset_index()
                 stock_df["datetime"] = stock_df["datetime"].astype(str)
                 data[ticker] = stock_df.to_dict(orient="records")
-            else:
-                data[ticker] = "No data found"
 
         return {
             "success": True,
