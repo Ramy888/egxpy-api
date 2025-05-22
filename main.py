@@ -112,3 +112,22 @@ def get_today_intraday_data(tickers: List[str] = Body(..., embed=True)):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+@app.get("/price/{ticker}")
+def get_price(ticker: str):
+    try:
+        # Define the interval and date range
+        interval = '1 Minute'
+        end = datetime.now()
+        start = end - timedelta(days=1)
+
+        # Fetch the intraday data
+        df = get_EGX_intraday_data([ticker], interval, start, end)
+
+        # Extract the latest price
+        latest_price = df[ticker].dropna().iloc[-1]
+
+        return {"success": True, "ticker": ticker, "price": latest_price}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
