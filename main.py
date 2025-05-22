@@ -6,6 +6,10 @@ import pytz
 from egxpy.download import get_EGX_intraday_data
 from fastapi.middleware.cors import CORSMiddleware
 
+
+
+app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # or restrict to your domain
@@ -13,8 +17,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app = FastAPI()
 
 
 @app.post("/stocks/last7days")
