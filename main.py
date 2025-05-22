@@ -24,8 +24,11 @@ def get_multiple_stocks_last7days(tickers: List[str] = Body(..., embed=True)):
     try:
         interval = '1 Minute'
         now = datetime.now(pytz.timezone("Africa/Cairo"))
-        start = now - timedelta(days=7)
-        end = now
+        start = (now - timedelta(days=7)).replace(tzinfo=None)
+        end = now.replace(tzinfo=None)
+        
+        # start = now - timedelta(days=7)
+        # end = now
 
         data = {}
         df = get_EGX_intraday_data(tickers, interval, start, end)
