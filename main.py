@@ -3,8 +3,16 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta
 from typing import List
 import pytz
-
 from egxpy.download import get_EGX_intraday_data
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or restrict to your domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app = FastAPI()
 
