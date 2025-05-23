@@ -132,15 +132,14 @@ def get_today_intraday_data(tickers: List[str] = Body(..., embed=True)):
 
 @app.get("/price/{ticker}")
 def get_price(ticker: str):
-    interval = '1 Minute'
-    now = datetime.now(pytz.timezone("Africa/Cairo"))
-    start = now - timedelta(days=7)
-    end = now
     try:
-        df = get_EGX_intraday_data(ticker, interval, start, end)
-        if df is None:
-            return {"success": False, "error": f"No data returned for {ticker}. Check the symbol or TradingView access."}
-        return {"success": True, "data": df.to_dict()}
+        interval = "15min"
+        today = datetime.today().strftime("%Y-%m-%d")
+        
+        data = get_EGX_intraday_data(ticker=ticker, interval=interval, start=today, end=today)
+
+        # Convert to list of dicts for JSON response if data is a DataFrame
+        return {"success": True, "data": data.to_dict(orient="records")}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
