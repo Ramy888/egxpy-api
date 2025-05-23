@@ -136,7 +136,7 @@ def get_price(ticker: str):
         interval = "15min"
         today = datetime.today().strftime("%Y-%m-%d")
         
-        data = get_EGX_intraday_data(ticker=ticker, interval=interval, start=today, end=today)
+        data = get_EGX_intraday_data(ticker, interval, today, today)
 
         # Convert to list of dicts for JSON response if data is a DataFrame
         return {"success": True, "data": data.to_dict(orient="records")}
