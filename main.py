@@ -139,7 +139,7 @@ def get_price(ticker: str):
         data = get_EGX_intraday_data(ticker, interval, today, today)
 
         # Convert to list of dicts for JSON response if data is a DataFrame
-        return {"success": True, "data": data.to_dict(orient="records")}
+        return {"success": True, "data": data}
     except Exception as e:
         return {"success": False, "error": str(e)}
 
