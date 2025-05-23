@@ -132,8 +132,12 @@ def get_today_intraday_data(tickers: List[str] = Body(..., embed=True)):
 
 @app.get("/price/{ticker}")
 def get_price(ticker: str):
+    interval = '1 Minute'
+    now = datetime.now(pytz.timezone("Africa/Cairo"))
+    start = (now - timedelta(days=7)).replace(tzinfo=None)
+    end = now.replace(tzinfo=None)
     try:
-        data = get_EGX_intraday_data(ticker)
+        data = get_EGX_intraday_data(ticker, interval, start, end)
         return {"success": True, "data": data}
     except Exception as e:
         return {"success": False, "error": str(e)}
